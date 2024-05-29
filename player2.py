@@ -1,6 +1,7 @@
 import math
 import socket
 import pygame
+import select
 
 
 WINDOW_WIDTH = 1440
@@ -287,14 +288,19 @@ def move_other_player(player_socket, x_player, y_player):
     return x, y
 
 
+def handle_socket_error(sock):
+    error_message = f"Error on socket {sock}"
+    # Log the error message (optional)
+    print(error_message)
+    sock.close()
+
+
 def main():
     my_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         my_socket.connect((IP, PORT))
-        my_socket.send("waiting".encode())
-        print(my_socket.recv(1024).decode())
         pygame.init()
-        pygame.display.set_caption("Mini Golf Game! - Player 1")
+        pygame.display.set_caption("Mini Golf Game! - Player 2")
 
         img = pygame.image.load(START_SCREEN)
         SCREEN.blit(img, (0, 0))
@@ -317,69 +323,77 @@ def main():
                         start_game()
                         start = True
 
+        turn = False
         finish = False
         while not finish:
+            rlist, wlist, xlist = select.select([my_socket], [my_socket], [my_socket])
+
+            if xlist:
+                # close socket
+                my_socket.close()
+
+            if turn == 1 and wlist:
+                # write my turn to server
+                my_socket.send("my_turn".encode())
+
+            if rlist:
+                msg = my_socket.recv(1024).decode()
             clock.tick(fps)
             x_speed = 0
             y_speed = 0
-            turn = my_socket.recv(1024).decode()
-            if turn == "turn":
-                # setting direction
-                cont = True
-                while cont:
-                    pygame.time.delay(fps)
-                    redraw_screen()
-                    draw_player1(x2, y2)
-                    ball2 = pygame.image.load("ball2.png")
-                    ball2.set_colorkey(GREEN_BLUE)
-                    SCREEN.blit(ball2, (600, START_Y_POS))
-                    pygame.display.flip()
-                    draw_player(x, y)
-                    pos = pygame.mouse.get_pos()
-                    pygame.draw.line(SCREEN, (255, 255, 255), (x + 25, y + 25), pos, width=5)
-                    pygame.display.flip()
-
-                    for event in pygame.event.get():
-                        if event.type == pygame.QUIT:
-                            quit()
-
-                        if event.type == pygame.MOUSEBUTTONUP:
-                            x_speed = int((pos[0] - x) / 20)
-                            y_speed = int((pos[1] - y) / 20)
-                            cont = False
-
-                pygame.draw.rect(SCREEN, "white", (1300, 250, 40, 400))
-                pygame.display.flip()
-                speed = MIN_SPEED
-                press_space = False
-                while not press_space:
-                    if math.floor(speed) == 100:
-                        speed = MIN_SPEED
-                        update_speed_bar(speed)
-                        pygame.draw.rect(SCREEN, "white", (1300, 250, 40, 400))
-
-                    speed = speed + 0.1
-                    update_speed_bar(speed)
-
-                    for event in pygame.event.get():
-                        if event.type == pygame.QUIT:
-                            quit()
-
-                        if event.type == pygame.KEYDOWN:
-                            if event.key == pygame.K_SPACE:
-                                speed = 1 - (speed / 700)
-                                press_space = True
-
+            # setting direction
+            cont = True
+            while cont:
+                pygame.time.delay(fps)
                 redraw_screen()
+                draw_player1(x2, y2)
+                ball2 = pygame.image.load("ball2.png")
+                ball2.set_colorkey(GREEN_BLUE)
+                SCREEN.blit(ball2, (600, START_Y_POS))
+                pygame.display.flip()
+                draw_player(x, y)
+                pos = pygame.mouse.get_pos()
+                pygame.draw.line(SCREEN, (255, 255, 255), (x + 25, y + 25), pos, width=5)
                 pygame.display.flip()
 
-                location = move_player(x, y, x_speed, y_speed, speed)
-                x = location[0]
-                y = location[1]
-                my_socket.send("waiting".encode())
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        quit()
 
-            else:
-                my_socket.send("turn".encode())
+                    if event.type == pygame.MOUSEBUTTONUP:
+                        x_speed = int((pos[0] - x) / 20)
+                        y_speed = int((pos[1] - y) / 20)
+                        cont = False
+
+            pygame.draw.rect(SCREEN, "white", (1300, 250, 40, 400))
+            pygame.display.flip()
+            speed = MIN_SPEED
+            press_space = False
+            while not press_space:
+                if math.floor(speed) == 100:
+                    speed = MIN_SPEED
+                    update_speed_bar(speed)
+                    pygame.draw.rect(SCREEN, "white", (1300, 250, 40, 400))
+
+                speed = speed + 0.1
+                update_speed_bar(speed)
+
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        quit()
+
+                    if event.type == pygame.KEYDOWN:
+                        if event.key == pygame.K_SPACE:
+                            speed = 1 - (speed / 700)
+                            press_space = True
+
+            redraw_screen()
+            pygame.display.flip()
+
+            location = move_player(x, y, x_speed, y_speed, speed)
+            x = location[0]
+            y = location[1]
+            my_socket.send("waiting".encode())
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:

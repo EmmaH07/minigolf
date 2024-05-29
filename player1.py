@@ -1,6 +1,7 @@
 import math
 import socket
 import pygame
+import select
 
 WINDOW_WIDTH = 1440
 WINDOW_HEIGHT = 800
@@ -96,15 +97,19 @@ def is_win(x, y):
 def touched_white_bush(x, y):
     if (MAP1_DICT["white_bush"][0] <= x <= MAP1_DICT["white_bush"][0] + MAP1_DICT["white_bush_size"][0] and
             MAP1_DICT["white_bush"][1] <= y <= MAP1_DICT["white_bush"][1] + MAP1_DICT["white_bush_size"][1]):
+        x = x - 10
         return True
     if (MAP1_DICT["white_bush"][0] <= x + 50 <= MAP1_DICT["white_bush"][0] + MAP1_DICT["white_bush_size"][0] and
             MAP1_DICT["white_bush"][1] <= y <= MAP1_DICT["white_bush"][1] + MAP1_DICT["white_bush_size"][1]):
+        x = x + 10
         return True
     if (MAP1_DICT["white_bush"][0] <= x + 50 <= MAP1_DICT["white_bush"][0] + MAP1_DICT["white_bush_size"][0] and
             MAP1_DICT["white_bush"][1] <= y + 50 <= MAP1_DICT["white_bush"][1] + MAP1_DICT["white_bush_size"][1]):
+        x = x + 10
         return True
     if (MAP1_DICT["white_bush"][0] <= x <= MAP1_DICT["white_bush"][0] + MAP1_DICT["white_bush_size"][0] and
             MAP1_DICT["white_bush"][1] <= y + 50 <= MAP1_DICT["white_bush"][1] + MAP1_DICT["white_bush_size"][1]):
+        x = x - 10
         return True
     else:
         return False
@@ -113,15 +118,19 @@ def touched_white_bush(x, y):
 def touched_red_bush(x, y):
     if (MAP1_DICT["red_bush"][0] <= x <= MAP1_DICT["red_bush"][0] + MAP1_DICT["red_bush_size"][0] and
             MAP1_DICT["red_bush"][1] <= y <= MAP1_DICT["red_bush"][1] + MAP1_DICT["red_bush_size"][1]):
+        x = x - 10
         return True
     if (MAP1_DICT["red_bush"][0] <= x + 50 <= MAP1_DICT["red_bush"][0] + MAP1_DICT["red_bush_size"][0] and
             MAP1_DICT["red_bush"][1] <= y <= MAP1_DICT["red_bush"][1] + MAP1_DICT["red_bush_size"][1]):
+        x = x + 10
         return True
     if (MAP1_DICT["red_bush"][0] <= x + 50 <= MAP1_DICT["red_bush"][0] + MAP1_DICT["red_bush_size"][0] and
             MAP1_DICT["red_bush"][1] <= y + 50 <= MAP1_DICT["red_bush"][1] + MAP1_DICT["red_bush_size"][1]):
+        x = x + 10
         return True
     if (MAP1_DICT["red_bush"][0] <= x <= MAP1_DICT["red_bush"][0] + MAP1_DICT["red_bush_size"][0] and
             MAP1_DICT["red_bush"][1] <= y + 50 <= MAP1_DICT["red_bush"][1] + MAP1_DICT["red_bush_size"][1]):
+        x = x - 10
         return True
     else:
         return False
@@ -130,15 +139,19 @@ def touched_red_bush(x, y):
 def touched_pink_bush(x, y):
     if (MAP1_DICT["pink_bush"][0] <= x <= MAP1_DICT["pink_bush"][0] + MAP1_DICT["pink_bush_size"][0] and
             MAP1_DICT["pink_bush"][1] <= y <= MAP1_DICT["pink_bush"][1] + MAP1_DICT["pink_bush_size"][1]):
+        x = x - 10
         return True
     if (MAP1_DICT["pink_bush"][0] <= x + 50 <= MAP1_DICT["pink_bush"][0] + MAP1_DICT["pink_bush_size"][0] and
             MAP1_DICT["pink_bush"][1] <= y <= MAP1_DICT["pink_bush"][1] + MAP1_DICT["pink_bush_size"][1]):
+        x = x + 10
         return True
     if (MAP1_DICT["pink_bush"][0] <= x + 50 <= MAP1_DICT["pink_bush"][0] + MAP1_DICT["pink_bush_size"][0] and
             MAP1_DICT["pink_bush"][1] <= y + 50 <= MAP1_DICT["pink_bush"][1] + MAP1_DICT["pink_bush_size"][1]):
+        x = x + 10
         return True
     if (MAP1_DICT["pink_bush"][0] <= x <= MAP1_DICT["pink_bush"][0] + MAP1_DICT["pink_bush_size"][0] and
             MAP1_DICT["pink_bush"][1] <= y + 50 <= MAP1_DICT["pink_bush"][1] + MAP1_DICT["pink_bush_size"][1]):
+        x = x - 10
         return True
     else:
         return False
@@ -173,6 +186,7 @@ def touched_orange_bush(x, y):
         return True
     if (MAP1_DICT["orange_bush"][0] <= x <= MAP1_DICT["orange_bush"][0] + MAP1_DICT["orange_bush_size"][0] and
             MAP1_DICT["orange_bush"][1] <= y + 50 <= MAP1_DICT["orange_bush"][1] + MAP1_DICT["orange_bush_size"][1]):
+        x = x + 10
         return True
     else:
         return False
@@ -231,7 +245,7 @@ def draw_player2(x_player2, y_player2):
     SCREEN.blit(player_image, (x_player2, y_player2))
 
 
-def move_player(x, y, xspeed, yspeed, speed, player_socket):
+def move_player(x, y, xspeed, yspeed, speed):
     won = False
     while round(xspeed) != 0 and round(yspeed) != 0:
         pygame.time.delay(20)
@@ -289,11 +303,17 @@ def move_other_player(player_socket, x_player, y_player):
     return x, y
 
 
+def handle_socket_error(sock):
+    error_message = f"Error on socket {sock}"
+    # Log the error message (optional)
+    print(error_message)
+    sock.close()
+
+
 def main():
     my_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         my_socket.connect((IP, PORT))
-        my_socket.send("turn".encode())
         pygame.init()
         pygame.display.set_caption("Mini Golf Game! - Player 1")
 
@@ -309,7 +329,7 @@ def main():
         clock = pygame.time.Clock()
         fps = 150
 
-        """starting the game"""
+        """starting the game
         start = False
         while not start:
             for event in pygame.event.get():
@@ -317,68 +337,88 @@ def main():
                     if event.key == pygame.K_SPACE:
                         start_game()
                         start = True
+        """
 
+        turn = True
         finish = False
         while not finish:
-            turn = my_socket.recv(1024).decode()
+            rlist, wlist, xlist = select.select([my_socket], [my_socket], [my_socket])
+
+            if xlist:
+                # Handle errors on the sockets in xlist
+                for sock in xlist:
+                    handle_socket_error(sock)
+
+            if turn and wlist:
+                # write my turn to server
+                print("i sent turn")
+                my_socket.send("turn".encode())
+
+            if not turn and wlist:
+                print("i sent not turn")
+                my_socket.send("not turn".encode())
+
+            if rlist:
+                msg = my_socket.recv(1024).decode()
+                print(msg)
+                if msg == 'turn':
+                    turn = False
+                else:
+                    turn = True
+
             clock.tick(fps)
             x_speed = 0
             y_speed = 0
             # setting direction
-            if turn == "turn":
-                cont = True
-                while cont:
-                    pygame.time.delay(fps)
-                    redraw_screen()
-                    draw_player2(x2, y2)
-                    pygame.display.flip()
-                    draw_player(x, y)
-                    pos = pygame.mouse.get_pos()
-                    pygame.draw.line(SCREEN, (255, 255, 255), (x + 25, y + 25), pos, width=5)
-                    pygame.display.flip()
-
-                    for event in pygame.event.get():
-                        if event.type == pygame.QUIT:
-                            quit()
-
-                        if event.type == pygame.MOUSEBUTTONUP:
-                            x_speed = int((pos[0] - x) / 20)
-                            y_speed = int((pos[1] - y) / 20)
-                            cont = False
-
-                # setting the speed
-                pygame.draw.rect(SCREEN, "white", (1300, 250, 40, 400))
-                pygame.display.flip()
-                speed = MIN_SPEED
-                press_space = False
-                while not press_space:
-                    if math.floor(speed) == 100:
-                        speed = MIN_SPEED
-                        update_speed_bar(speed)
-                        pygame.draw.rect(SCREEN, "white", (1300, 250, 40, 400))
-
-                    speed = speed + 0.1
-                    update_speed_bar(speed)
-
-                    for event in pygame.event.get():
-                        if event.type == pygame.QUIT:
-                            quit()
-
-                        if event.type == pygame.KEYDOWN:
-                            if event.key == pygame.K_SPACE:
-                                speed = 1 - (speed / 700)
-                                press_space = True
-
+            cont = True
+            while cont:
+                pygame.time.delay(fps)
                 redraw_screen()
+                draw_player2(x2, y2)
+                pygame.display.flip()
+                draw_player(x, y)
+                pos = pygame.mouse.get_pos()
+                pygame.draw.line(SCREEN, (255, 255, 255), (x + 25, y + 25), pos, width=5)
                 pygame.display.flip()
 
-                location = move_player(x, y, x_speed, y_speed, speed)
-                x = location[0]
-                y = location[1]
-                my_socket.send("waiting".encode())
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        quit()
 
-            else:
-                my_socket.send("turn".encode())
+                    if event.type == pygame.MOUSEBUTTONUP:
+                        x_speed = int((pos[0] - x) / 20)
+                        y_speed = int((pos[1] - y) / 20)
+                        cont = False
+
+            # setting the speed
+            pygame.draw.rect(SCREEN, "white", (1300, 250, 40, 400))
+            pygame.display.flip()
+            speed = MIN_SPEED
+            press_space = False
+            while not press_space:
+                if math.floor(speed) == 100:
+                    speed = MIN_SPEED
+                    update_speed_bar(speed)
+                    pygame.draw.rect(SCREEN, "white", (1300, 250, 40, 400))
+
+                speed = speed + 0.1
+                update_speed_bar(speed)
+
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        quit()
+
+                    if event.type == pygame.KEYDOWN:
+                        if event.key == pygame.K_SPACE:
+                            speed = 1 - (speed / 700)
+                            press_space = True
+
+            redraw_screen()
+            pygame.display.flip()
+
+            location = move_player(x, y, x_speed, y_speed, speed)
+            x = location[0]
+            y = location[1]
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
