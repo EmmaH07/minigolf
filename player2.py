@@ -314,7 +314,7 @@ def main():
         clock = pygame.time.Clock()
         fps = 150
 
-        """starting the game"""
+        """starting the game
         start = False
         while not start:
             for event in pygame.event.get():
@@ -322,34 +322,41 @@ def main():
                     if event.key == pygame.K_SPACE:
                         start_game()
                         start = True
+        """
 
         turn = False
         finish = False
         while not finish:
+            clock.tick(fps)
             rlist, wlist, xlist = select.select([my_socket], [my_socket], [my_socket])
 
             if xlist:
-                # close socket
-                my_socket.close()
+                # Handle errors on the sockets in xlist
+                for sock in xlist:
+                    handle_socket_error(sock)
 
-            if turn == 1 and wlist:
+            if turn and wlist:
                 # write my turn to server
-                my_socket.send("my_turn".encode())
+                print("i sent turn")
+                my_socket.send("turn".encode())
+
+            if not turn and wlist:
+                print("i sent not turn")
+                my_socket.send("not turn".encode())
 
             if rlist:
                 msg = my_socket.recv(1024).decode()
-            clock.tick(fps)
+                print(msg)
+
             x_speed = 0
             y_speed = 0
+
             # setting direction
             cont = True
             while cont:
                 pygame.time.delay(fps)
                 redraw_screen()
                 draw_player1(x2, y2)
-                ball2 = pygame.image.load("ball2.png")
-                ball2.set_colorkey(GREEN_BLUE)
-                SCREEN.blit(ball2, (600, START_Y_POS))
                 pygame.display.flip()
                 draw_player(x, y)
                 pos = pygame.mouse.get_pos()
@@ -393,7 +400,11 @@ def main():
             location = move_player(x, y, x_speed, y_speed, speed)
             x = location[0]
             y = location[1]
-            my_socket.send("waiting".encode())
+
+            if turn:
+                turn = False
+            else:
+                turn = True
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:

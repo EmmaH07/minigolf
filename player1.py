@@ -97,19 +97,15 @@ def is_win(x, y):
 def touched_white_bush(x, y):
     if (MAP1_DICT["white_bush"][0] <= x <= MAP1_DICT["white_bush"][0] + MAP1_DICT["white_bush_size"][0] and
             MAP1_DICT["white_bush"][1] <= y <= MAP1_DICT["white_bush"][1] + MAP1_DICT["white_bush_size"][1]):
-        x = x - 10
         return True
     if (MAP1_DICT["white_bush"][0] <= x + 50 <= MAP1_DICT["white_bush"][0] + MAP1_DICT["white_bush_size"][0] and
             MAP1_DICT["white_bush"][1] <= y <= MAP1_DICT["white_bush"][1] + MAP1_DICT["white_bush_size"][1]):
-        x = x + 10
         return True
     if (MAP1_DICT["white_bush"][0] <= x + 50 <= MAP1_DICT["white_bush"][0] + MAP1_DICT["white_bush_size"][0] and
             MAP1_DICT["white_bush"][1] <= y + 50 <= MAP1_DICT["white_bush"][1] + MAP1_DICT["white_bush_size"][1]):
-        x = x + 10
         return True
     if (MAP1_DICT["white_bush"][0] <= x <= MAP1_DICT["white_bush"][0] + MAP1_DICT["white_bush_size"][0] and
             MAP1_DICT["white_bush"][1] <= y + 50 <= MAP1_DICT["white_bush"][1] + MAP1_DICT["white_bush_size"][1]):
-        x = x - 10
         return True
     else:
         return False
@@ -118,19 +114,15 @@ def touched_white_bush(x, y):
 def touched_red_bush(x, y):
     if (MAP1_DICT["red_bush"][0] <= x <= MAP1_DICT["red_bush"][0] + MAP1_DICT["red_bush_size"][0] and
             MAP1_DICT["red_bush"][1] <= y <= MAP1_DICT["red_bush"][1] + MAP1_DICT["red_bush_size"][1]):
-        x = x - 10
         return True
     if (MAP1_DICT["red_bush"][0] <= x + 50 <= MAP1_DICT["red_bush"][0] + MAP1_DICT["red_bush_size"][0] and
             MAP1_DICT["red_bush"][1] <= y <= MAP1_DICT["red_bush"][1] + MAP1_DICT["red_bush_size"][1]):
-        x = x + 10
         return True
     if (MAP1_DICT["red_bush"][0] <= x + 50 <= MAP1_DICT["red_bush"][0] + MAP1_DICT["red_bush_size"][0] and
             MAP1_DICT["red_bush"][1] <= y + 50 <= MAP1_DICT["red_bush"][1] + MAP1_DICT["red_bush_size"][1]):
-        x = x + 10
         return True
     if (MAP1_DICT["red_bush"][0] <= x <= MAP1_DICT["red_bush"][0] + MAP1_DICT["red_bush_size"][0] and
             MAP1_DICT["red_bush"][1] <= y + 50 <= MAP1_DICT["red_bush"][1] + MAP1_DICT["red_bush_size"][1]):
-        x = x - 10
         return True
     else:
         return False
@@ -139,19 +131,15 @@ def touched_red_bush(x, y):
 def touched_pink_bush(x, y):
     if (MAP1_DICT["pink_bush"][0] <= x <= MAP1_DICT["pink_bush"][0] + MAP1_DICT["pink_bush_size"][0] and
             MAP1_DICT["pink_bush"][1] <= y <= MAP1_DICT["pink_bush"][1] + MAP1_DICT["pink_bush_size"][1]):
-        x = x - 10
         return True
     if (MAP1_DICT["pink_bush"][0] <= x + 50 <= MAP1_DICT["pink_bush"][0] + MAP1_DICT["pink_bush_size"][0] and
             MAP1_DICT["pink_bush"][1] <= y <= MAP1_DICT["pink_bush"][1] + MAP1_DICT["pink_bush_size"][1]):
-        x = x + 10
         return True
     if (MAP1_DICT["pink_bush"][0] <= x + 50 <= MAP1_DICT["pink_bush"][0] + MAP1_DICT["pink_bush_size"][0] and
             MAP1_DICT["pink_bush"][1] <= y + 50 <= MAP1_DICT["pink_bush"][1] + MAP1_DICT["pink_bush_size"][1]):
-        x = x + 10
         return True
     if (MAP1_DICT["pink_bush"][0] <= x <= MAP1_DICT["pink_bush"][0] + MAP1_DICT["pink_bush_size"][0] and
             MAP1_DICT["pink_bush"][1] <= y + 50 <= MAP1_DICT["pink_bush"][1] + MAP1_DICT["pink_bush_size"][1]):
-        x = x - 10
         return True
     else:
         return False
@@ -186,7 +174,6 @@ def touched_orange_bush(x, y):
         return True
     if (MAP1_DICT["orange_bush"][0] <= x <= MAP1_DICT["orange_bush"][0] + MAP1_DICT["orange_bush_size"][0] and
             MAP1_DICT["orange_bush"][1] <= y + 50 <= MAP1_DICT["orange_bush"][1] + MAP1_DICT["orange_bush_size"][1]):
-        x = x + 10
         return True
     else:
         return False
@@ -271,20 +258,20 @@ def move_player(x, y, xspeed, yspeed, speed):
             xspeed = xspeed * 0.3
             yspeed = yspeed * 0.3
         if touched_white_bush(x, y):
-            xspeed = xspeed * -1
-            yspeed = yspeed * -1
+            xspeed = xspeed * -2
+            yspeed = yspeed * -2
         if touched_pink_bush(x, y):
-            xspeed = xspeed * -1
-            yspeed = yspeed * -1
+            xspeed = xspeed * -2
+            yspeed = yspeed * -2
         if touched_red_bush(x, y):
-            xspeed = xspeed * -1
-            yspeed = yspeed * -1
+            xspeed = xspeed * -2
+            yspeed = yspeed * -2
         if touched_yellow_bush(x, y):
-            xspeed = xspeed * -1
-            yspeed = yspeed * -1
+            xspeed = xspeed * -2
+            yspeed = yspeed * -2
         if touched_orange_bush(x, y):
-            xspeed = xspeed * -1
-            yspeed = yspeed * -1
+            xspeed = xspeed * -2
+            yspeed = yspeed * -2
         x = int(x + xspeed)
         y = int(y + yspeed)
         draw_player(x, y)
@@ -342,6 +329,7 @@ def main():
         turn = True
         finish = False
         while not finish:
+            clock.tick(fps)
             rlist, wlist, xlist = select.select([my_socket], [my_socket], [my_socket])
 
             if xlist:
@@ -361,12 +349,11 @@ def main():
             if rlist:
                 msg = my_socket.recv(1024).decode()
                 print(msg)
-                if msg == 'turn':
-                    turn = False
-                else:
-                    turn = True
 
-            clock.tick(fps)
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    finish = True
+
             x_speed = 0
             y_speed = 0
             # setting direction
@@ -420,9 +407,10 @@ def main():
             x = location[0]
             y = location[1]
 
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    finish = True
+            if turn:
+                turn = False
+            else:
+                turn = True
 
         pygame.quit()
 
