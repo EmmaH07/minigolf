@@ -2,6 +2,7 @@ import math
 import socket
 import pygame
 import select
+import minigolf_protocol
 
 WINDOW_WIDTH = 1440
 WINDOW_HEIGHT = 800
@@ -29,10 +30,6 @@ MAP1_DICT = {
     "sand_center": (504, 504), "sand_radius": 104, "white_bush_size": (78, 200), "pink_bush_size": (200, 70),
     "yellow_bush_size": (138, 87), "red_bush_size": (136, 89), "orange_bush_size": (135, 90)
 }
-WHITE_BUSH_OBJ = pygame.draw.rect(SCREEN, (255, 255, 255, 10), (MAP1_DICT["white_bush"][0],
-                                                                MAP1_DICT["white_bush_size"][1],
-                                                                MAP1_DICT["white_bush"][0],
-                                                                MAP1_DICT["white_bush_size"][1]))
 MAX_SPEED = 100
 MIN_SPEED = 0
 START_X_POS = 695
@@ -279,14 +276,50 @@ def move_player(x, y, xspeed, yspeed, speed):
     return x, y
 
 
-def move_other_player(player_socket, x_player, y_player):
-    data = player_socket.recv(1024).decode()
-    x = x_player
-    y = y_player
-    while data != '':
-        x, y = data.split(",")
+def move_other_player(x, y, xspeed, yspeed, speed):
+    won = False
+    while round(xspeed) != 0 and round(yspeed) != 0:
+        pygame.time.delay(20)
+        redraw_screen()
+        xspeed = xspeed * speed
+        yspeed = yspeed * speed
+        if x >= 1390:
+            xspeed = xspeed * -1
+            x = 1389
+        if x <= 20:
+            xspeed = xspeed * -1
+            x = 21
+        if y >= 750:
+            yspeed = yspeed * -1
+            y = 749
+        if y <= 20:
+            yspeed = yspeed * -1
+            y = 21
+        if is_in_lake(x + 25, y + 25):
+            xspeed = xspeed * 0.5
+            yspeed = yspeed * 0.5
+        if is_in_sand(x + 25, y + 25):
+            xspeed = xspeed * 0.3
+            yspeed = yspeed * 0.3
+        if touched_white_bush(x, y):
+            xspeed = xspeed * -2
+            yspeed = yspeed * -2
+        if touched_pink_bush(x, y):
+            xspeed = xspeed * -2
+            yspeed = yspeed * -2
+        if touched_red_bush(x, y):
+            xspeed = xspeed * -2
+            yspeed = yspeed * -2
+        if touched_yellow_bush(x, y):
+            xspeed = xspeed * -2
+            yspeed = yspeed * -2
+        if touched_orange_bush(x, y):
+            xspeed = xspeed * -2
+            yspeed = yspeed * -2
+        x = int(x + xspeed)
+        y = int(y + yspeed)
         draw_player2(x, y)
-        data = player_socket.recv(1024).decode()
+        pygame.display.flip()
     return x, y
 
 
@@ -326,26 +359,17 @@ def main():
                         start = True
         """
 
-        turn = True
         finish = False
         while not finish:
             clock.tick(fps)
-            rlist, wlist, xlist = select.select([my_socket], [my_socket], [my_socket])
+            rlist, wlist, xlist = select.select([my_socket], [my_socket], [my_socket], 0.1)
 
             if xlist:
                 # Handle errors on the sockets in xlist
                 for sock in xlist:
                     handle_socket_error(sock)
 
-            if turn and wlist:
-                # write my turn to server
-                print("i sent turn")
-                my_socket.send("turn".encode())
-
-            if not turn and wlist:
-                print("i sent not turn")
-                my_socket.send("not turn".encode())
-
+            msg = '~'
             if rlist:
                 msg = my_socket.recv(1024).decode()
                 print(msg)
@@ -356,61 +380,88 @@ def main():
 
             x_speed = 0
             y_speed = 0
-            # setting direction
-            cont = True
-            while cont:
-                pygame.time.delay(fps)
-                redraw_screen()
-                draw_player2(x2, y2)
-                pygame.display.flip()
-                draw_player(x, y)
-                pos = pygame.mouse.get_pos()
-                pygame.draw.line(SCREEN, (255, 255, 255), (x + 25, y + 25), pos, width=5)
-                pygame.display.flip()
-
-                for event in pygame.event.get():
-                    if event.type == pygame.QUIT:
-                        quit()
-
-                    if event.type == pygame.MOUSEBUTTONUP:
-                        x_speed = int((pos[0] - x) / 20)
-                        y_speed = int((pos[1] - y) / 20)
-                        cont = False
-
-            # setting the speed
-            pygame.draw.rect(SCREEN, "white", (1300, 250, 40, 400))
-            pygame.display.flip()
-            speed = MIN_SPEED
-            press_space = False
-            while not press_space:
-                if math.floor(speed) == 100:
-                    speed = MIN_SPEED
-                    update_speed_bar(speed)
-                    pygame.draw.rect(SCREEN, "white", (1300, 250, 40, 400))
-
-                speed = speed + 0.1
-                update_speed_bar(speed)
-
-                for event in pygame.event.get():
-                    if event.type == pygame.QUIT:
-                        quit()
-
-                    if event.type == pygame.KEYDOWN:
-                        if event.key == pygame.K_SPACE:
-                            speed = 1 - (speed / 700)
-                            press_space = True
 
             redraw_screen()
+            draw_player2(x2, y2)
+            draw_player(x, y)
             pygame.display.flip()
 
-            location = move_player(x, y, x_speed, y_speed, speed)
-            x = location[0]
-            y = location[1]
+            if minigolf_protocol.check_turn(msg):
+                # setting direction
+                cont = True
+                while cont:
+                    pygame.time.delay(fps)
+                    redraw_screen()
+                    draw_player2(x2, y2)
+                    pygame.display.flip()
+                    draw_player(x, y)
+                    pos = pygame.mouse.get_pos()
+                    pygame.draw.line(SCREEN, (255, 255, 255), (x + 25, y + 25), pos, width=5)
+                    pygame.display.flip()
 
-            if turn:
-                turn = False
-            else:
-                turn = True
+                    for event in pygame.event.get():
+                        if event.type == pygame.QUIT:
+                            quit()
+
+                        if event.type == pygame.MOUSEBUTTONUP:
+                            x_speed = int((pos[0] - x) / 20)
+                            y_speed = int((pos[1] - y) / 20)
+                            cont = False
+
+                # setting the speed
+                pygame.draw.rect(SCREEN, "white", (1300, 250, 40, 400))
+                pygame.display.flip()
+                speed = MIN_SPEED
+                press_space = False
+                while not press_space:
+                    if math.floor(speed) == 100:
+                        speed = MIN_SPEED
+                        update_speed_bar(speed)
+                        pygame.draw.rect(SCREEN, "white", (1300, 250, 40, 400))
+
+                    speed = speed + 0.1
+                    update_speed_bar(speed)
+
+                    for event in pygame.event.get():
+                        if event.type == pygame.QUIT:
+                            quit()
+
+                        if event.type == pygame.KEYDOWN:
+                            if event.key == pygame.K_SPACE:
+                                speed = 1 - (speed / 700)
+                                press_space = True
+
+                redraw_screen()
+                pygame.display.flip()
+
+                location = move_player(x, y, x_speed, y_speed, speed)
+                x = location[0]
+                y = location[1]
+
+                if wlist:
+                    send_str = str(x_speed) + "," + str(y_speed) + "," + str(speed) + "@END"
+                    print("I sent: " + send_str)
+                    my_socket.send(send_str.encode())
+
+            elif minigolf_protocol.check_wait(msg):
+                redraw_screen()
+                draw_player2(x2, y2)
+                draw_player(x, y)
+                pygame.display.flip()
+
+                coordinates = minigolf_protocol.get_coordinates(msg)
+                print(coordinates)
+                x2_speed, y2_speed, speed2 = coordinates.split(',')
+                x2_speed = float(x2_speed)
+                y2_speed = float(y2_speed)
+                speed2 = float(speed2)
+                x2, y2 = move_other_player(x2, y2, x2_speed, y2_speed, speed2)
+                if wlist:
+                    my_socket.send('END'.encode())
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    finish = True
 
         pygame.quit()
 
