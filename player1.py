@@ -229,8 +229,11 @@ def draw_player2(x_player2, y_player2):
     SCREEN.blit(player_image, (x_player2, y_player2))
 
 
+def win(x, y):
+    return distance_from_hole(x, y) <= 20
+
+
 def move_player(x, y, xspeed, yspeed, speed):
-    won = False
     while round(xspeed) != 0 and round(yspeed) != 0:
         pygame.time.delay(20)
         redraw_screen()
@@ -277,7 +280,6 @@ def move_player(x, y, xspeed, yspeed, speed):
 
 
 def move_other_player(x, y, xspeed, yspeed, speed):
-    won = False
     while round(xspeed) != 0 and round(yspeed) != 0:
         pygame.time.delay(20)
         redraw_screen()
@@ -434,14 +436,14 @@ def main():
                 redraw_screen()
                 pygame.display.flip()
 
-                location = move_player(x, y, x_speed, y_speed, speed)
-                x = location[0]
-                y = location[1]
-
                 if wlist:
                     send_str = str(x_speed) + "," + str(y_speed) + "," + str(speed) + "@END"
                     print("I sent: " + send_str)
                     my_socket.send(send_str.encode())
+
+                location = move_player(x, y, x_speed, y_speed, speed)
+                x = location[0]
+                y = location[1]
 
             elif minigolf_protocol.check_wait(msg):
                 redraw_screen()

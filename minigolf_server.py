@@ -8,8 +8,10 @@ IP = '0.0.0.0'
 PORT = 1729
 shared_data = ''
 turn_index = 0
+wait_index = 1
 finish_round1 = False
 finish_round2 = False
+changed = False
 
 
 def modifier(msg):
@@ -20,10 +22,13 @@ def modifier(msg):
 
 def index_modifier():
     global turn_index
+    global wait_index
     if turn_index == 0:
         turn_index = 1
+        wait_index = 0
     else:
         turn_index = 0
+        wait_index = 1
 
 
 def handle_thread(client_socket, client_address, sock_list):
@@ -46,9 +51,9 @@ def handle_thread(client_socket, client_address, sock_list):
             global finish_round1
             global finish_round2
             global shared_data
+            global wait_index
+            global changed
 
-            print("the data is:  " + shared_data)
-            print(finish_round1)
             if str(client_socket) == str(sock_list[turn_index]) and not finish_round1:
                 msg = client_socket.recv(1024).decode()
                 print("i got: " + msg)
@@ -59,11 +64,12 @@ def handle_thread(client_socket, client_address, sock_list):
                         if split_msg[1] == 'END':
                             finish_round1 = True
                             print("round1: " + str(finish_round1))
-            else:
+            elif str(client_socket) == str(sock_list[wait_index]) and not finish_round2:
                 if not finish_round2:
                     print("else")
                     print("the shared data is: " + shared_data)
                     if shared_data != '':
+                        print(shared_data)
                         wait_msg = "wait@" + shared_data
                         wait_msg = minigolf_protocol.proto_msg(wait_msg)
                         print("I sent: " + wait_msg)
@@ -72,13 +78,15 @@ def handle_thread(client_socket, client_address, sock_list):
                         if msg == 'END':
                             finish_round2 = True
 
-            print('hi')
-            print('h1')
             if finish_round1 and finish_round2:
-                print("round2: " + str(finish_round2) + "round1: " + str(finish_round1))
+                if str(client_socket) == str(sock_list[wait_index]):
+                    index_modifier()
+                    changed = True
+                else:
+                    while not changed:
+                        pass
+                changed = False
                 modifier('')
-                time.sleep(1)
-                index_modifier()
                 turn_msg = 'turn@'
                 turn_msg = minigolf_protocol.proto_msg(turn_msg)
                 sock_list[turn_index].send(turn_msg.encode())
