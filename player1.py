@@ -32,10 +32,10 @@ MAP1_DICT = {
 }
 MAX_SPEED = 100
 MIN_SPEED = 0
-START_X_POS = 695
-START_Y_POS = 700
-PLAYER2_START_X_POS = 600
-PLAYER2_START_Y_POS = 700
+START_X_POS1 = 695
+START_Y_POS1 = 700
+START_X_POS2 = 600
+START_Y_POS2 = 700
 IP = '127.0.0.1'
 PORT = 1729
 
@@ -333,6 +333,8 @@ def handle_socket_error(sock):
 
 
 def main():
+    global PLAYER1
+    global PLAYER2
     my_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         my_socket.connect((IP, PORT))
@@ -343,10 +345,24 @@ def main():
         SCREEN.blit(img, (0, 0))
         pygame.display.flip()
 
-        x = START_X_POS
-        y = START_Y_POS
-        x2 = PLAYER2_START_X_POS
-        y2 = PLAYER2_START_Y_POS
+        color = my_socket.recv(1024).decode()
+        if color == 'pink':
+            x = START_X_POS1
+            y = START_Y_POS1
+            x2 = START_X_POS2
+            y2 = START_Y_POS2
+        elif color == 'blue':
+            PLAYER1 = 'ball2.png'
+            PLAYER2 = 'ball1.png'
+            x = START_X_POS2
+            y = START_Y_POS2
+            x2 = START_X_POS1
+            y2 = START_Y_POS1
+        else:
+            x = 0
+            y = 0
+            x2 = 0
+            y2 = 0
 
         clock = pygame.time.Clock()
         fps = 150
@@ -364,7 +380,7 @@ def main():
         finish = False
         while not finish:
             clock.tick(fps)
-            rlist, wlist, xlist = select.select([my_socket], [my_socket], [my_socket], 0.1)
+            rlist, wlist, xlist = select.select([my_socket], [my_socket], [my_socket])
 
             if xlist:
                 # Handle errors on the sockets in xlist
@@ -437,13 +453,13 @@ def main():
                 pygame.display.flip()
 
                 if wlist:
-                    send_str = str(x_speed) + "," + str(y_speed) + "," + str(speed) + "@END"
+                    send_str = str(x_speed) + "," + str(y_speed) + "," + str(speed)
                     print("I sent: " + send_str)
                     my_socket.send(send_str.encode())
+                    print("I sent: END")
+                    my_socket.send("END".encode())
 
-                location = move_player(x, y, x_speed, y_speed, speed)
-                x = location[0]
-                y = location[1]
+                x, y = move_player(x, y, x_speed, y_speed, speed)
 
             elif minigolf_protocol.check_wait(msg):
                 redraw_screen()
