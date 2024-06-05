@@ -13,6 +13,8 @@ BACKGROUND_COLOR = (0, 170, 0)
 OBSTACLE_LEN = 10
 START_SCREEN = 'start_background.png'
 EMPTY_BACK = 'grass.png'
+WIN1_BACK = 'win1.png'
+LOSE1_BACK = 'lose1.png'
 PLAYER1 = 'ball1.png'
 PLAYER2 = 'ball2.png'
 FLAG = 'flag.png'
@@ -26,9 +28,9 @@ ORANGE_BUSH = 'orange_bush.png'
 MAP1_DICT = {
     "flag": (150, 100), "lake": (950, 100), "white_bush": (350, 50), "pink_bush": (100, 300),
     "sand": (400, 400), "yellow_bush": (690, 100), "red_bush": (950, 550), "orange_bush": (50, 600),
-    "hole_center": (173, 180), "hole_radius": 20, "lake_center": (1125, 275), "lake_radius": 175,
-    "sand_center": (504, 504), "sand_radius": 104, "white_bush_size": (78, 200), "pink_bush_size": (200, 70),
-    "yellow_bush_size": (138, 87), "red_bush_size": (136, 89), "orange_bush_size": (135, 90)
+    "hole_center": (173, 180), "hole_radius": 30, "lake_center": (1125, 275), "lake_radius": 175,
+    "sand_center": (504, 504), "sand_radius": 104, "white_bush_size": (48, 170), "pink_bush_size": (170, 40),
+    "yellow_bush_size": (108, 57), "red_bush_size": (106, 59), "orange_bush_size": (105, 60)
 }
 MAX_SPEED = 100
 MIN_SPEED = 0
@@ -258,20 +260,20 @@ def move_player(x, y, xspeed, yspeed, speed):
             xspeed = xspeed * 0.3
             yspeed = yspeed * 0.3
         if touched_white_bush(x, y):
-            xspeed = xspeed * -2
-            yspeed = yspeed * -2
+            xspeed = xspeed * -1
+            yspeed = yspeed * -1
         if touched_pink_bush(x, y):
-            xspeed = xspeed * -2
-            yspeed = yspeed * -2
+            xspeed = xspeed * -1
+            yspeed = yspeed * -1
         if touched_red_bush(x, y):
-            xspeed = xspeed * -2
-            yspeed = yspeed * -2
+            xspeed = xspeed * -1
+            yspeed = yspeed * -1
         if touched_yellow_bush(x, y):
-            xspeed = xspeed * -2
-            yspeed = yspeed * -2
+            xspeed = xspeed * -1
+            yspeed = yspeed * -1
         if touched_orange_bush(x, y):
-            xspeed = xspeed * -2
-            yspeed = yspeed * -2
+            xspeed = xspeed * -1
+            yspeed = yspeed * -1
         x = int(x + xspeed)
         y = int(y + yspeed)
         draw_player(x, y)
@@ -304,20 +306,20 @@ def move_other_player(x, y, xspeed, yspeed, speed):
             xspeed = xspeed * 0.3
             yspeed = yspeed * 0.3
         if touched_white_bush(x, y):
-            xspeed = xspeed * -2
-            yspeed = yspeed * -2
+            xspeed = xspeed * -1
+            yspeed = yspeed * -1
         if touched_pink_bush(x, y):
-            xspeed = xspeed * -2
-            yspeed = yspeed * -2
+            xspeed = xspeed * -1
+            yspeed = yspeed * -1
         if touched_red_bush(x, y):
-            xspeed = xspeed * -2
-            yspeed = yspeed * -2
+            xspeed = xspeed * -1
+            yspeed = yspeed * -1
         if touched_yellow_bush(x, y):
-            xspeed = xspeed * -2
-            yspeed = yspeed * -2
+            xspeed = xspeed * -1
+            yspeed = yspeed * -1
         if touched_orange_bush(x, y):
-            xspeed = xspeed * -2
-            yspeed = yspeed * -2
+            xspeed = xspeed * -1
+            yspeed = yspeed * -1
         x = int(x + xspeed)
         y = int(y + yspeed)
         draw_player2(x, y)
@@ -339,7 +341,7 @@ def main():
     try:
         my_socket.connect((IP, PORT))
         pygame.init()
-        pygame.display.set_caption("Mini Golf Game! - Player 1")
+        pygame.display.set_caption("Mini-Golf Game!")
 
         img = pygame.image.load(START_SCREEN)
         SCREEN.blit(img, (0, 0))
@@ -452,14 +454,19 @@ def main():
                 redraw_screen()
                 pygame.display.flip()
 
-                if wlist:
-                    send_str = str(x_speed) + "," + str(y_speed) + "," + str(speed)
-                    print("I sent: " + send_str)
-                    my_socket.send(send_str.encode())
-                    print("I sent: END")
-                    my_socket.send("END".encode())
+                send_str = str(x_speed) + "," + str(y_speed) + "," + str(speed)
+                print("I sent: " + send_str)
+                my_socket.send(send_str.encode())
 
                 x, y = move_player(x, y, x_speed, y_speed, speed)
+
+                if is_win(x + 25, y + 25):
+                    print("I sent: FINISH")
+                    my_socket.send(minigolf_protocol.proto_msg('FINISH').encode())
+                    finish = True
+                else:
+                    print("I sent: END")
+                    my_socket.send(minigolf_protocol.proto_msg('END').encode())
 
             elif minigolf_protocol.check_wait(msg):
                 redraw_screen()
@@ -474,12 +481,35 @@ def main():
                 y2_speed = float(y2_speed)
                 speed2 = float(speed2)
                 x2, y2 = move_other_player(x2, y2, x2_speed, y2_speed, speed2)
-                if wlist:
-                    my_socket.send('END'.encode())
+
+                if is_win(x2 + 25, y2 + 25):
+                    print("I sent: FINISH")
+                    my_socket.send(minigolf_protocol.proto_msg('FINISH').encode())
+                    finish = True
+                else:
+                    print("I sent: END")
+                    my_socket.send(minigolf_protocol.proto_msg('END').encode())
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     finish = True
+
+        start = False
+        while not start:
+            if is_win(x + 25, y + 25):
+                img = pygame.image.load(WIN1_BACK)
+                SCREEN.blit(img, (0, 0))
+                pygame.display.flip()
+            else:
+                img = pygame.image.load(LOSE1_BACK)
+                SCREEN.blit(img, (0, 0))
+                pygame.display.flip()
+            for event in pygame.event.get():
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_SPACE:
+                        start = True
+                if event.type == pygame.QUIT:
+                    quit()
 
         pygame.quit()
 

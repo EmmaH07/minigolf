@@ -48,7 +48,8 @@ def handle_thread(client_socket, client_address, sock_list):
         while len(sock_list) < 2:
             pass
         time.sleep(1)
-        while True:
+        finish = False
+        while not finish:
             global turn_index
             global finish_round1
             global finish_round2
@@ -62,14 +63,18 @@ def handle_thread(client_socket, client_address, sock_list):
 
             if str(client_socket) == str(sock_list[turn_index]) and not finish_round1:
                 msg = client_socket.recv(1024).decode()
+                if msg == 'FINISH':
+                    finish = True
                 logging.debug('I recieved: ' + msg)
                 if msg != '':
                     modifier(msg)
                 end_msg = client_socket.recv(1024).decode()
                 logging.debug('I recieved: ' + msg)
-                if end_msg == 'END':
+                if 'END' in end_msg:
                     finish_round1 = True
                     logging.debug('I set finish_round1 to True')
+                elif 'FINISH' in end_msg:
+                    finish = True
 
             elif str(client_socket) == str(sock_list[wait_index]) and not finish_round2:
                 if shared_data != '':
@@ -81,9 +86,11 @@ def handle_thread(client_socket, client_address, sock_list):
                     client_socket.send(wait_msg.encode())
                     msg = client_socket.recv(1024).decode()
                     logging.debug('I recieved: ' + msg)
-                    if msg == 'END':
+                    if 'END' in msg:
                         finish_round2 = True
                         logging.debug('I set finish_round2 to True')
+                    elif 'FINISH' in msg:
+                        finish = True
 
             if finish_round1 and finish_round2:
                 if str(client_socket) == str(sock_list[wait_index]) and not changed:
