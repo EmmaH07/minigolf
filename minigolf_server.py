@@ -1,4 +1,5 @@
 import socket
+import threading
 import time
 from threading import Thread
 import minigolf_protocol
@@ -14,15 +15,22 @@ FINISH_ROUND1 = False
 FINISH_ROUND2 = False
 CHANGED = False
 SENT = False
+COUNTER = 0
 
 logging.basicConfig(filename='mini-golf_server.log', level=logging.DEBUG)
 
 
-def modifier(msg):
-    global SHARED_DATA
-    SHARED_DATA = msg
-    print("i changed to: " + SHARED_DATA)
-    logging.debug("i changed the shared data to: " + SHARED_DATA)
+def count_modifier(sock_list):
+    global COUNTER
+    global TURN_INDEX
+    lock = threading.Lock()
+    lock.acquire()
+    COUNTER += 1
+    if COUNTER == 2:
+        index_modifier()
+        sock_list[TURN_INDEX].send(minigolf_protocol.proto_msg('turn@').encode())
+        COUNTER = 0
+    lock.release()
 
 
 def index_modifier():
@@ -34,6 +42,13 @@ def index_modifier():
     else:
         TURN_INDEX = 0
         WAIT_INDEX = 1
+
+
+def is_directions(msg):
+    directions = False
+    if msg.count(',') == 2:
+        directions = True
+    return directions
 
 
 def handle_thread(client_socket, client_address, sock_list):
@@ -51,69 +66,27 @@ def handle_thread(client_socket, client_address, sock_list):
         finish = False
         while not finish:
             global TURN_INDEX
-            global FINISH_ROUND1
-            global FINISH_ROUND2
-            global SHARED_DATA
             global WAIT_INDEX
-            global CHANGED
-            global SENT
 
-            SENT = False
-            CHANGED = False
-
-            if client_socket is sock_list[TURN_INDEX] and not FINISH_ROUND1:
+            if client_socket is sock_list[TURN_INDEX]:
                 msg = client_socket.recv(1024).decode()
-                if msg == 'FINISH':
-                    finish = True
                 logging.debug('I recieved: ' + msg)
-                if msg != '':
-                    modifier(msg)
-                end_msg = client_socket.recv(1024).decode()
-                logging.debug('I recieved: ' + msg)
-                if 'END' in end_msg:
-                    FINISH_ROUND1 = True
-                    logging.debug('I set finish_round1 to True')
-                elif 'FINISH' in end_msg:
-                    finish = True
-
-            elif client_socket is sock_list[WAIT_INDEX] and not FINISH_ROUND2:
-                if SHARED_DATA != '':
-                    print(SHARED_DATA)
-                    wait_msg = "wait@" + SHARED_DATA
-                    logging.debug('I sent: ' + wait_msg)
+                if is_directions(msg):
+                    directions = minigolf_protocol.get_coordinates_server(msg)
+                    print('the directions are: ' + directions)
+                    wait_msg = 'wait@' + directions
                     wait_msg = minigolf_protocol.proto_msg(wait_msg)
-                    print("I sent: " + wait_msg)
-                    client_socket.send(wait_msg.encode())
-                    msg = client_socket.recv(1024).decode()
-                    logging.debug('I recieved: ' + msg)
-                    if 'END' in msg:
-                        FINISH_ROUND2 = True
-                        logging.debug('I set finish_round2 to True')
-                    elif 'FINISH' in msg:
-                        finish = True
+                    sock_list[WAIT_INDEX].send(wait_msg.encode())
+                elif 'FINISH' in msg:
+                    finish = True
+                elif 'END' in msg:
+                    count_modifier(sock_list)
 
-            if FINISH_ROUND1 and FINISH_ROUND2:
-                if client_socket is sock_list[WAIT_INDEX] and not CHANGED:
-                    logging.debug('prev index turn: ' + str(TURN_INDEX))
-                    index_modifier()
-                    logging.debug('now index turn: ' + str(TURN_INDEX))
-                    CHANGED = True
-                    logging.debug('I set changed to True')
-                    modifier('')
-                elif client_socket is sock_list[TURN_INDEX]:
-                    while not CHANGED:
-                        pass
-                FINISH_ROUND1 = False
-                FINISH_ROUND2 = False
-                logging.debug('I set finish_round1 to False')
-                logging.debug('I set finish_round2 to False')
-                if client_socket is sock_list[TURN_INDEX] and not SENT:
-                    turn_msg = 'turn@'
-                    turn_msg = minigolf_protocol.proto_msg(turn_msg)
-                    sock_list[TURN_INDEX].send(turn_msg.encode())
-                    logging.debug('I sent: ' + turn_msg)
-                    SENT = True
-                    logging.debug('I set sent to True')
+            elif client_socket is sock_list[WAIT_INDEX]:
+                msg = client_socket.recv(1024).decode()
+                if 'END' in msg:
+                    count_modifier(sock_list)
+
     except socket.error as err:
         print('received socket exception - ' + str(err))
     finally:

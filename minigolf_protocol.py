@@ -28,11 +28,19 @@ def check_wait(msg):
     return wait
 
 
-def get_coordinates(msg):
+def get_coordinates_server(msg):
+    coordinates = '0, 0, 0'
+    if msg.count('@') == 1:
+        split_msg = msg.split('@')
+        if split_msg[1] != '':
+            coordinates = split_msg[1]
+    return coordinates
+
+
+def get_coordinates_client(msg):
     coordinates = '0, 0, 0'
     if msg.count('@') == 2:
         split_msg = msg.split('@')
         if split_msg[2] != '':
             coordinates = split_msg[2]
-
     return coordinates

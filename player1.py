@@ -455,6 +455,7 @@ def main():
                 pygame.display.flip()
 
                 send_str = str(x_speed) + "," + str(y_speed) + "," + str(speed)
+                send_str = minigolf_protocol.proto_msg(send_str)
                 print("I sent: " + send_str)
                 my_socket.send(send_str.encode())
 
@@ -474,7 +475,7 @@ def main():
                 draw_player(x, y)
                 pygame.display.flip()
 
-                coordinates = minigolf_protocol.get_coordinates(msg)
+                coordinates = minigolf_protocol.get_coordinates_client(msg)
                 print(coordinates)
                 x2_speed, y2_speed, speed2 = coordinates.split(',')
                 x2_speed = float(x2_speed)
