@@ -7,33 +7,33 @@ import logging
 QUEUE_SIZE = 10
 IP = '0.0.0.0'
 PORT = 1729
-shared_data = ''
-turn_index = 0
-wait_index = 1
-finish_round1 = False
-finish_round2 = False
-changed = False
-sent = False
+SHARED_DATA = ''
+TURN_INDEX = 0
+WAIT_INDEX = 1
+FINISH_ROUND1 = False
+FINISH_ROUND2 = False
+CHANGED = False
+SENT = False
 
-logging.basicConfig(filename='minigolf_server.log', level=logging.DEBUG)
+logging.basicConfig(filename='mini-golf_server.log', level=logging.DEBUG)
 
 
 def modifier(msg):
-    global shared_data
-    shared_data = msg
-    print("i changed to: " + shared_data)
-    logging.debug("i changed the shared data to: " + shared_data)
+    global SHARED_DATA
+    SHARED_DATA = msg
+    print("i changed to: " + SHARED_DATA)
+    logging.debug("i changed the shared data to: " + SHARED_DATA)
 
 
 def index_modifier():
-    global turn_index
-    global wait_index
-    if turn_index == 0:
-        turn_index = 1
-        wait_index = 0
+    global TURN_INDEX
+    global WAIT_INDEX
+    if TURN_INDEX == 0:
+        TURN_INDEX = 1
+        WAIT_INDEX = 0
     else:
-        turn_index = 0
-        wait_index = 1
+        TURN_INDEX = 0
+        WAIT_INDEX = 1
 
 
 def handle_thread(client_socket, client_address, sock_list):
@@ -50,18 +50,18 @@ def handle_thread(client_socket, client_address, sock_list):
         time.sleep(1)
         finish = False
         while not finish:
-            global turn_index
-            global finish_round1
-            global finish_round2
-            global shared_data
-            global wait_index
-            global changed
-            global sent
+            global TURN_INDEX
+            global FINISH_ROUND1
+            global FINISH_ROUND2
+            global SHARED_DATA
+            global WAIT_INDEX
+            global CHANGED
+            global SENT
 
-            sent = False
-            changed = False
+            SENT = False
+            CHANGED = False
 
-            if str(client_socket) == str(sock_list[turn_index]) and not finish_round1:
+            if client_socket is sock_list[TURN_INDEX] and not FINISH_ROUND1:
                 msg = client_socket.recv(1024).decode()
                 if msg == 'FINISH':
                     finish = True
@@ -71,15 +71,15 @@ def handle_thread(client_socket, client_address, sock_list):
                 end_msg = client_socket.recv(1024).decode()
                 logging.debug('I recieved: ' + msg)
                 if 'END' in end_msg:
-                    finish_round1 = True
+                    FINISH_ROUND1 = True
                     logging.debug('I set finish_round1 to True')
                 elif 'FINISH' in end_msg:
                     finish = True
 
-            elif str(client_socket) == str(sock_list[wait_index]) and not finish_round2:
-                if shared_data != '':
-                    print(shared_data)
-                    wait_msg = "wait@" + shared_data
+            elif client_socket is sock_list[WAIT_INDEX] and not FINISH_ROUND2:
+                if SHARED_DATA != '':
+                    print(SHARED_DATA)
+                    wait_msg = "wait@" + SHARED_DATA
                     logging.debug('I sent: ' + wait_msg)
                     wait_msg = minigolf_protocol.proto_msg(wait_msg)
                     print("I sent: " + wait_msg)
@@ -87,32 +87,32 @@ def handle_thread(client_socket, client_address, sock_list):
                     msg = client_socket.recv(1024).decode()
                     logging.debug('I recieved: ' + msg)
                     if 'END' in msg:
-                        finish_round2 = True
+                        FINISH_ROUND2 = True
                         logging.debug('I set finish_round2 to True')
                     elif 'FINISH' in msg:
                         finish = True
 
-            if finish_round1 and finish_round2:
-                if str(client_socket) == str(sock_list[wait_index]) and not changed:
-                    logging.debug('prev index turn: ' + str(turn_index))
+            if FINISH_ROUND1 and FINISH_ROUND2:
+                if client_socket is sock_list[WAIT_INDEX] and not CHANGED:
+                    logging.debug('prev index turn: ' + str(TURN_INDEX))
                     index_modifier()
-                    logging.debug('now index turn: ' + str(turn_index))
-                    changed = True
+                    logging.debug('now index turn: ' + str(TURN_INDEX))
+                    CHANGED = True
                     logging.debug('I set changed to True')
                     modifier('')
-                elif str(client_socket) == str(sock_list[turn_index]):
-                    while not changed:
+                elif client_socket is sock_list[TURN_INDEX]:
+                    while not CHANGED:
                         pass
-                finish_round1 = False
-                finish_round2 = False
+                FINISH_ROUND1 = False
+                FINISH_ROUND2 = False
                 logging.debug('I set finish_round1 to False')
                 logging.debug('I set finish_round2 to False')
-                if str(client_socket) == str(sock_list[turn_index]) and not sent:
+                if client_socket is sock_list[TURN_INDEX] and not SENT:
                     turn_msg = 'turn@'
                     turn_msg = minigolf_protocol.proto_msg(turn_msg)
-                    sock_list[turn_index].send(turn_msg.encode())
+                    sock_list[TURN_INDEX].send(turn_msg.encode())
                     logging.debug('I sent: ' + turn_msg)
-                    sent = True
+                    SENT = True
                     logging.debug('I set sent to True')
     except socket.error as err:
         print('received socket exception - ' + str(err))
@@ -136,9 +136,9 @@ def main():
             thread.start()
         turn_msg = 'turn@'
         turn_msg = minigolf_protocol.proto_msg(turn_msg)
-        sock_list[0].send('pink'.encode())
-        sock_list[1].send('blue'.encode())
-        sock_list[0].send(turn_msg.encode())
+        sock_list[TURN_INDEX].send('pink'.encode())
+        sock_list[WAIT_INDEX].send('blue'.encode())
+        sock_list[TURN_INDEX].send(turn_msg.encode())
 
     except socket.error as err:
         print('received socket exception - ' + str(err))

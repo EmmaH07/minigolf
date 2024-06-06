@@ -492,7 +492,7 @@ def main():
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    finish = True
+                    quit()
 
         start = False
         while not start:
@@ -500,7 +500,7 @@ def main():
                 img = pygame.image.load(WIN1_BACK)
                 SCREEN.blit(img, (0, 0))
                 pygame.display.flip()
-            else:
+            elif is_win(x2 + 25, y2 + 25):
                 img = pygame.image.load(LOSE1_BACK)
                 SCREEN.blit(img, (0, 0))
                 pygame.display.flip()
