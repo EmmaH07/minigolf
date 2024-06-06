@@ -8,29 +8,24 @@ import logging
 QUEUE_SIZE = 10
 IP = '0.0.0.0'
 PORT = 1729
-SHARED_DATA = ''
 TURN_INDEX = 0
 WAIT_INDEX = 1
-FINISH_ROUND1 = False
-FINISH_ROUND2 = False
-CHANGED = False
-SENT = False
 COUNTER = 0
+LOCK = threading.Lock()
 
-logging.basicConfig(filename='mini-golf_server.log', level=logging.DEBUG)
+logging.basicConfig(filename='mini-golf_server.log', level=logging.DEBUG, filemode='w')
 
 
 def count_modifier(sock_list):
     global COUNTER
     global TURN_INDEX
-    lock = threading.Lock()
-    lock.acquire()
+    LOCK.acquire()
     COUNTER += 1
     if COUNTER == 2:
         index_modifier()
         sock_list[TURN_INDEX].send(minigolf_protocol.proto_msg('turn@').encode())
         COUNTER = 0
-    lock.release()
+    LOCK.release()
 
 
 def index_modifier():
@@ -51,7 +46,7 @@ def is_directions(msg):
     return directions
 
 
-def handle_thread(client_socket, client_address, sock_list):
+def handle_thread(client_socket, client_address, sock_list, my_index):
     """
     handle a connection
     :param client_socket: the connection socket
@@ -70,22 +65,28 @@ def handle_thread(client_socket, client_address, sock_list):
 
             if client_socket is sock_list[TURN_INDEX]:
                 msg = client_socket.recv(1024).decode()
-                logging.debug('I recieved: ' + msg)
+                logging.debug('Thread ' + str(my_index) + ' I recieved: ' + msg)
                 if is_directions(msg):
                     directions = minigolf_protocol.get_coordinates_server(msg)
                     print('the directions are: ' + directions)
                     wait_msg = 'wait@' + directions
                     wait_msg = minigolf_protocol.proto_msg(wait_msg)
                     sock_list[WAIT_INDEX].send(wait_msg.encode())
+                    print('I sent: ' + wait_msg)
                 elif 'FINISH' in msg:
+                    print('Thread ' + str(my_index) + ' I got: ' + msg)
                     finish = True
                 elif 'END' in msg:
+                    print('Thread ' + str(my_index) + ' I got: ' + msg)
                     count_modifier(sock_list)
 
             elif client_socket is sock_list[WAIT_INDEX]:
                 msg = client_socket.recv(1024).decode()
+                print('Thread ' + str(my_index) + ' I got: ' + msg)
                 if 'END' in msg:
                     count_modifier(sock_list)
+                elif 'FINISH' in msg:
+                    finish = True
 
     except socket.error as err:
         print('received socket exception - ' + str(err))
@@ -105,7 +106,7 @@ def main():
             client_socket, client_address = server_socket.accept()
             sock_list.append(client_socket)
             thread = Thread(target=handle_thread,
-                            args=(client_socket, client_address, sock_list))
+                            args=(client_socket, client_address, sock_list, len(sock_list)-1))
             thread.start()
         turn_msg = 'turn@'
         turn_msg = minigolf_protocol.proto_msg(turn_msg)
